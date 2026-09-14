@@ -31,13 +31,12 @@ async def calculate_total_revenue(
         params.update({"start_date": start_date, "end_date": end_date})
 
     try:
-        # Import database pool
-        from app.core.database_pool import DatabasePool
-        
-        # Initialize pool if needed
-        db_pool = DatabasePool()
-        await db_pool.initialize()
-        
+        # Reuse the process-wide pool; a fresh engine per request leaked connections.
+        from app.core.database_pool import db_pool
+
+        if db_pool.session_factory is None:
+            await db_pool.initialize()
+
         if db_pool.session_factory:
             async with db_pool.get_session() as session:
                 # Use SQLAlchemy text for raw SQL
